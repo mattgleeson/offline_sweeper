@@ -1,0 +1,41 @@
+OfflineSweeper
+==============
+
+I have this problem.  We use the Rails fragment cache a lot, and we
+use Sweepers to expire the cache when models are changed.  We have a
+lot of cache invalidation logic in our sweepers.  Sweepers work great
+when you use them the way they are expected to be used: inside
+controllers.
+
+But over time we've added background jobs fired from cron or DJ or
+email (even a chat bot) that make changes to the same models that our
+sweepers are supposed to be sweeping.  As some people have noticed,
+sweepers quietly don't work unless the model is changed inside a web
+request.
+
+There appear to be these problems that prevent sweepers from expiring
+the fragment cache inside e.g. a cron job:
+
+* If you use a hash as your fragment cache key, Rails wants to use the
+  full URL of the incoming request (indirectly through url_for) as
+  part of the generated key string.  This is a problem because the
+  background job doesn't have a request and because it doesn't
+  necessarily know what hostname/port was used to create the fragment
+
+* Sweepers aren't loaded and run automatically like other Observers
+  outside of a controller request?
+
+* Even if you call them explictly the sweeper will silently do nothing
+  without a controller (the method_missing thing in sweeping.rb)
+
+Action caching isn't really a problem for me so it isn't supported
+yet.  There appears to be some handwringing in the code about formats
+that I don't want to dig into now.
+
+Example
+=======
+
+Example goes here.
+
+
+Copyright (c) 2010 Matt Gleeson, released under the MIT license
