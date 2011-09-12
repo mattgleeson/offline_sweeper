@@ -33,7 +33,7 @@ class OfflineSweeperTest < ActiveSupport::TestCase
     assert @sweeper.fragment_cache_key(@hash_key)
   end
 
-  def test_fragment_hash_key_is_same_offline_as_for_web_request
+  def setup_controller
     @controller = FragmentCachingTestController.new
     @params = {:controller => 'posts', :action => 'index'}
     @request = ActionController::TestRequest.new
@@ -44,6 +44,10 @@ class OfflineSweeperTest < ActiveSupport::TestCase
     @controller.send(:initialize_current_url)
     @controller.send(:initialize_template_class, @response)
     @controller.send(:assign_shortcuts, @request, @response)
+  end
+
+  def test_fragment_hash_key_is_same_offline_as_for_web_request
+    setup_controller
     assert_equal @controller.fragment_cache_key(@hash_key), @sweeper.fragment_cache_key(@hash_key)
   end
 
@@ -55,4 +59,24 @@ class OfflineSweeperTest < ActiveSupport::TestCase
 
   #test "offline sweeper still works as an observer"
   #test "action cache keys work?"
+
+  unless defined?(DynamicRelativeRoot)
+    class DynamicRelativeRoot
+      cattr_accessor :current_root
+    end
+  end
+
+  def test_dynamic_relative_root_has_no_effect_on_key
+    key_without_drr = begin
+                        DynamicRelativeRoot.current_root = nil
+                        setup_controller
+                        @controller.fragment_cache_key(@hash_key)
+                      end
+    key_with_drr = begin
+                     DynamicRelativeRoot.current_root = '/some/root'
+                     setup_controller
+                     @controller.fragment_cache_key(@hash_key)
+                   end
+    assert_equal key_without_drr, key_with_drr
+  end
 end
